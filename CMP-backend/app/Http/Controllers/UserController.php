@@ -22,7 +22,8 @@ class UserController extends Controller
         if(Auth::check()){
             $user = Auth::user();
             $token = $user->createToken('example')->accessToken;
-            return Response (['status'=>200,'token'=>$token],200);
+            return response()->json(['token' => $token,'user'=>$user]);
+
         }else{
             return Response (['status'=>401,'token'=>"email mismatch"]);
         }
