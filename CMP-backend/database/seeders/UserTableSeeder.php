@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -14,11 +13,13 @@ class UserTableSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = new User();
-        $user->name = "Admin";
-        $user->email = "admin@gmail.com";
-        $user->password = Hash::make('admin123');
-        $user->save();
-        $user->assignRole('Super Admin');
+        \App\Models\User::factory()->create([
+            'firstname' => 'veleswaran',
+            'lastname' => 'nagaraj',
+            "phone"=>9361172225,
+            'role_id'=>1,
+            'email' => 'vels344@gmail.com',
+            'password'=> Hash::make("Vels344@")
+        ]);
     }
 }

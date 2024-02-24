@@ -2,102 +2,103 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Storage;
+
+use function Laravel\Prompts\error;
 
 class UserController extends Controller
 {
+   
     /**
      * Display a listing of the resource.
      */
-    public function loginUser(Request $request)
+    public function index()
     {
-        $input = $request->all();
-        Auth::attempt($input);
-        if(Auth::check()){
-            $user = Auth::user();
-            $token = $user->createToken('example')->accessToken;
-            return response()->json(['token' => $token,'user'=>$user]);
-
-        }else{
-            return Response (['status'=>401,'token'=>"email mismatch"]);
+        $users = User::all();
+        foreach ($users as $user) {
+            if ($user->image) {
+                $user['image'] = asset("storage/{$user->image}");
+            }
         }
-      
+        return response()->json(['users' => $users]);
+
     }
 
     /**
      * Store a newly created resource in storage.
-     */ 
-    public function getUserDetail(Request $request)
+     */
+    public function store(Request $request)
     {
-        if(Auth::guard('api')->check()){
-            $user = Auth::guard('api')->user();
-            return Response (['status'=>200,'data'=>$user],200);
+        try{
+            $input = new User();
+            $input->firstname =$request->firstname;
+            $input->lastname =$request->lastname;
+            $input->phone=$request->phone;
+            $input->role_id=$request->role_id;
+            $input->email =$request->email;
+            $input->password=Hash::make($request->password);
+            if($request->file('images')){
+                $image=$request->file('images');
+                $filename =time().".".$image->getClientOriginalExtension();
+                $image->storeAs('public', $filename);
+                $input->image=$filename;
+            }
+            $input->save();
+            return response()->json(['response'=>200,'user'=>$request]);
+        }catch (\Exception $e) {
+            return response()->json(['response' => $e->getMessage(), 'user' => $request]);
         }
-        return Response (['status'=>401,'data'=>"unAutherized"]);
-      
+       
     }
-        public function userLogout() {
-           if(Auth::guard('api')->check()){
-            $accessToken= Auth::guard('api')->user()->token();
-            DB::table('oauth_refresh_tokens')
-            ->where('access_token_id',$accessToken->id)
-            ->update(['revoked'=>true]);
-            $accessToken->revoke();
-            return response()->json(['message' => 'Successfully logged out']);
-           }
-           return response()->json(['status'=>401,'message' => 'UnAutherized']);
 
-            
-        }
-   
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $user = User::find($id);
+        return response()->json(['user'=>$user]);
+    }
 
-        public function index()
-        {
-            $user = User::get();
-            return $user;
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        $input = User::find($id);
+        $input->firstname =$request->firstname;
+        $input->lastname =$request->lastname;
+        $input->phone=$request->phone;
+        $input->role_id=$request->role_id;
+        $input->email =$request->email;
+        $input->password=Hash::make($request->password);
+        if($request->file('images')){
+            if(Storage::exists("uploads/{$input->image}") && $input->image!='user_logo.jpg'){
+                Storage::delete("uploads/{$input->image}");
+            }
+            $image=$request->file('images');
+            $filename =time().".".$image->getClientOriginalExtension();
+            $image->move('uploads/', $filename);
+            $input->image=$filename;
         }
-    
-        /**
-         * Store a newly created resource in storage.
-         */
-        public function store(Request $request)
-        {
-            $user = new User();
-            $user->name = $request->name;
-            $user->email = $request->email;
-            $user->password = Hash::make($request->password);
-            $user->save();
-            return response()->json(['message' => 'Successfully Store user data']);
+      
+        $input->save();
+        return response()->json(['response'=>200,'user'=>$request]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $user = User::find($id);
+        $user->delete();
+        if(Storage::exists("uploads/{$user->image}") && $user->image!='user_logo.jpg'){
+            Storage::delete("uploads/{$user->image}");
         }
-    
-        /**
-         * Display the specified resource.
-         */
-        public function show(string $id)
-        {
-            $user = User::find($id);
-            return $user;
-        }
-    
-        /**
-         * Update the specified resource in storage.
-         */
-        public function update(Request $request, string $id)
-        {
-            
-        }
-    
-        /**
-         * Remove the specified resource from storage.
-         */
-        public function destroy(string $id)
-        {
-            //
-        }
+        return response()->json(['response'=>200,'user'=>$user]);
+    }
 }
